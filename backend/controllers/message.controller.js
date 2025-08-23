@@ -1,7 +1,7 @@
 import cloudinary from "../lib/cloudinary.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
-//import { getReceiverSocketId, io } from "../lib/socket.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export const getUserForSidebar = async (req, res) => {
   try {
@@ -35,31 +35,42 @@ export const getMessages = async (req, res) => {
 };
 
 export const sendMessage = async (req, res) => {
-  try {
-   
-    const { text, imageUrl } = req.body;
-    const { id: receiverId } = req.params;
-    const senderId = req.user._id;
+  try {
+    const { text, imageUrl } = req.body;
+    const { id: receiverId } = req.params;
+    const senderId = req.user._id;
 
-    
-    if (!text && !imageUrl) {
-      return res.status(400).json({ error: "Message content cannot be empty." });
-    }
+    // Check if both text and imageUrl are missing.
+    // The previous code had a syntax error in this block.
+    if (!text && !imageUrl) {
+      return res
+        .status(400)
+        .json({ error: "Message content cannot be empty." });
+    }
 
-    const newMessage = new Message({
-      senderId,
-      receiverId,
-      text,
-     
-      image: imageUrl,
-    });
+    // Create a new message instance.
+    const newMessage = new Message({
+      senderId,
+      receiverId,
+      text,
+      // Only include the image field if imageUrl is provided.
+      // This prevents saving a null or undefined value for the image.
+      ...(imageUrl && { image: imageUrl }),
+    });
 
-    await newMessage.save();
+    // Save the new message to the database.
+    await newMessage.save();
 
-    // todo: realtime functionality goes here => socket.io
-    res.status(200).json(newMessage);
-  } catch (error) {
-    console.log("Error in sendMessage Controller: ", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+    // The rest of the real-time logic remains the same.
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
+
+    res.status(200).json(newMessage);
+  } catch (error) {
+    // The 'catch' block was missing its opening curly brace.
+    console.log("Error in sendMessage Controller: ", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 };

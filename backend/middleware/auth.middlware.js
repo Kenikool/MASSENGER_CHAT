@@ -4,7 +4,7 @@ import AppError from "../utils/appError.js"; // Assuming you have this utility
 
 export const protectedRoute = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const token = req.cookies.jwt;
 
     if (!token) {
       // Use AppError for consistent error handling
