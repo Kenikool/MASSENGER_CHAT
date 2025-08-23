@@ -1,0 +1,67 @@
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, light, dark, cupcake, bumblebee,
+    emerald, corporate, synthwave, retro, cyberpunk, valentine, halloween,
+    garden, forest, aqua, lofi, pastel, fantasy, wireframe, black, luxury,
+    dracula, cmyk, autumn, business, acid, lemonade, night, coffee, winter, dim,
+    nord, sunset, caramellatte, abyss, silk;
+}
+
+@keyframes wave {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+.animate-wave {
+  animation: wave 3s ease-out infinite;
+}
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes slideRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slideLeft {
+  animation: slideLeft 0.3s ease-out;
+}
+.animate-slideRight {
+  animation: slideRight 0.3s ease-out;
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
