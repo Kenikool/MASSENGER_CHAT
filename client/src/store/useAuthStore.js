@@ -11,7 +11,7 @@ export const useAuthStore = create((set, get) => ({
   loading: false,
   checkingAuth: true,
   onlineUsers: [],
-  socket: [],
+  socket: null,
 
   checkAuth: async () => {
     try {
@@ -58,13 +58,14 @@ export const useAuthStore = create((set, get) => ({
     }
   },
   logout: async () => {
+    // ✅ Only one, corrected logout function
     try {
       await axiosInstance.post("/auth/logout");
-      set({ authUser: null });
+      set({ authUser: null, onlineUsers: [] });
       toast.success("Logged out successfully");
       get().disconnectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to log out");
     }
   },
   updateProfile: async (data) => {

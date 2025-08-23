@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Camera, Mail, User, X, Edit, Save } from "lucide-react";
+import { Camera, Mail, User, X, Edit, Save, Globe } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { toast } from "react-hot-toast";
 import ThreeBackground from "../components/ThreeBackground";
-
+import dayjs from "dayjs"; // ✅ Import dayjs
+import relativeTime from "dayjs/plugin/relativeTime"; // ✅ Import relativeTime plugin
+dayjs.extend(relativeTime);
 const ProfilePage = () => {
-  const { authUser, loading, updateProfile, updateDetails } = useAuthStore();
+  const { authUser, loading, updateProfile, updateDetails, onlineUsers } =
+    useAuthStore();
   const [selectedImg, setSelectedImg] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -15,6 +18,14 @@ const ProfilePage = () => {
     email: authUser?.email || "",
     about: authUser?.about || "",
   });
+
+  // Check if the user is online
+  const isOnline = onlineUsers.includes(authUser?._id);
+
+  // Get the last seen timestamp
+  const lastSeen = authUser?.lastSeen
+    ? dayjs(authUser.lastSeen).fromNow()
+    : "Never";
 
   useEffect(() => {
     if (authUser) {
@@ -205,6 +216,19 @@ const ProfilePage = () => {
                   <span className="text-green-500">Active</span>
                 </div>
               </div>
+              {/* ✅ Display Online/Last Seen Status */}
+              <div className="flex items-center justify-center gap-2">
+                {isOnline ? (
+                  <div className="flex items-center gap-1 text-green-500 font-semibold">
+                    <Globe size={16} /> Online
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-zinc-400">
+                    <Globe size={16} /> Last seen: {lastSeen}
+                  </div>
+                )}
+              </div>
+              <hr className="border-t border-zinc-700" />
             </div>
           </div>
         </div>
