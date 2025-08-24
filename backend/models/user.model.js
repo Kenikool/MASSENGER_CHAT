@@ -27,6 +27,16 @@ const userSchema = new mongoose.Schema(
       // ✅ Add this new field
       type: Date,
     },
+    badges: {
+      // ✅ Add the new badges field
+      type: [String],
+      type: [String],
+      default: [],
+    },
+    twoFactorSecret: {
+      type: String,
+      required: false, // Make it optional initially
+    },
   },
   { timestamps: true }
 );

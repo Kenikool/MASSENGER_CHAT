@@ -3,7 +3,8 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
 import jwt from "jsonwebtoken";
-
+import speakeasy from "speakeasy";
+import QRCode from "qrcode";
 const generateProfileToken = (userId, res) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "15d",
@@ -69,7 +70,7 @@ export const signUp = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, token } = req.body;
 
   try {
     const user = await User.findOne({ email });
@@ -84,6 +85,27 @@ export const login = async (req, res) => {
 
     if (!isPasswordCorrect) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Check for 2FA
+    if (user.isTwoFactorEnabled) {
+      if (!token) {
+        // Return a specific status to signal the client needs to ask for 2FA token
+        return res.status(200).json({
+          needsTwoFactor: true,
+          message: "Two-factor authentication required",
+        });
+      }
+
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: "base32",
+        token: token,
+      });
+
+      if (!verified) {
+        return res.status(401).json({ error: "Invalid 2FA token" });
+      }
     }
 
     //   generate jwt token
@@ -181,5 +203,95 @@ export const updateDetails = async (req, res) => {
   } catch (error) {
     console.error("Error in updateDetails controller:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+    const userId = req.user._id;
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ error: "New passwords do not match" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // 1. Verify the current password
+    const isPasswordCorrect = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ error: "Invalid current password" });
+    }
+
+    // 2. Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // 3. Update the user's password in the database
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error in changePassword controller:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// New function to generate 2FA secret and QR code
+export const setupTwoFactor = async (req, res) => {
+  try {
+    const user = req.user; // Assuming req.user is set by a middleware like protectRoute
+
+    const secret = speakeasy.generateSecret({
+      name: `Chatty (${user.email})`,
+    });
+
+    user.twoFactorSecret = secret.base32;
+    await user.save();
+
+    QRCode.toDataURL(secret.otpauth_url, (err, data_url) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to generate QR code" });
+      }
+      res.status(200).json({ qrCode: data_url, secret: secret.base32 });
+    });
+  } catch (error) {
+    console.error("Error in 2FA setup:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// New function to verify 2FA token and enable 2FA
+export const verifyTwoFactor = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = req.user;
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: "base32",
+      token: token,
+    });
+
+    if (!verified) {
+      return res.status(400).json({ error: "Invalid token" });
+    }
+
+    user.isTwoFactorEnabled = true;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Two-factor authentication enabled successfully" });
+  } catch (error) {
+    console.error("Error in 2FA verification:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
