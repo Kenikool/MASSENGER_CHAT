@@ -185,6 +185,21 @@ export const useAuthStore = create((set, get) => ({
       set({ loading: false });
     }
   },
+  // NEW: Function to verify the 2FA token and complete the login
+  verifyTwoFactor: async (token) => {
+    set({ loading: true });
+    try {
+      const res = await axiosInstance.post("/auth/login/2fa", { token });
+      set({ authUser: res.data, needsTwoFactor: false });
+      toast.success("Login successful!");
+      get().connectSocket();
+    } catch (error) {
+      toast.error(error.response.data.message || "Invalid 2FA code.");
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   logout: async () => {
     // ✅ Only one, corrected logout function
     try {

@@ -5,6 +5,7 @@ import cloudinary from "../lib/cloudinary.js";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import dayjs from "dayjs";
 const generateProfileToken = (userId, res) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "15d",
@@ -110,11 +111,14 @@ export const login = async (req, res) => {
 
     //   generate jwt token
     generateToken(user._id, res);
+    // Calculate days as member
+    const accountAgeDays = dayjs().diff(dayjs(user.createdAt), "day");
     return res.status(200).json({
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
       profilePic: user.profilePic,
+      accountAgeDays,
       message: "Login successful",
     });
   } catch (error) {
@@ -172,7 +176,10 @@ export const checkAuth = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    // Calculate days as member using the createdAt timestamp
+    const accountAgeDays = dayjs().diff(dayjs(user.createdAt), "day"); // Exclude sensitive data and add the new field
     const { password, ...userData } = user.toObject();
+    userData.accountAgeDays = accountAgeDays;
     return res.status(200).json(userData);
   } catch (error) {
     console.log("Error in checkAuth controller", error.message);
