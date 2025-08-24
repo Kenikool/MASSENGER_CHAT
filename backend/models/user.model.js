@@ -33,9 +33,19 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    seenBadges: {
+      // NEW FIELD
+      type: [String],
+      default: [],
+    },
     twoFactorSecret: {
       type: String,
       required: false, // Make it optional initially
+    },
+    isVerified: {
+      // ✅ New field
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

@@ -11,11 +11,13 @@ import { Toaster } from "react-hot-toast";
 import NotFound from "./components/NotFound";
 import { useAuthStore } from "./store/useAuthStore";
 import LoadingSpinner from "./components/LoadingSpinner";
- import { useThemeStore } from "./store/useThemeStore";
+import { useThemeStore } from "./store/useThemeStore";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
+import VerifyEmailChangePage from "./pages/VerifyEmailChangePage";
 const App = () => {
   const { checkingAuth, checkAuth, authUser } = useAuthStore();
 
-const {theme} = useThemeStore()
+  const { theme } = useThemeStore();
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -32,7 +34,7 @@ const {theme} = useThemeStore()
   return (
     <div data-theme={theme} className="bg-base-100 min-h-screen">
       <Navbar />
-      <div className="pt-16" >
+      <div className="pt-16">
         <Routes>
           <Route
             path="/"
@@ -54,6 +56,11 @@ const {theme} = useThemeStore()
             path="/settings"
             element={authUser ? <SettingsPage /> : <Navigate to="/login" />}
           />
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
+          <Route
+            path="/verify-email-change"
+            element={<VerifyEmailChangePage />}
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
@@ -63,4 +70,3 @@ const {theme} = useThemeStore()
 };
 
 export default App;
-

@@ -29,6 +29,7 @@ import {
   getMessages,
   sendMessage,
 } from "../controllers/message.controller.js";
+import { awardCollaboratorBadge } from "../controllers/gamification.controller.js";
 
 const upload = multer({ dest: "uploads/" });
 const router = express.Router();
@@ -38,6 +39,12 @@ router.get("/:id", protectedRoute, getMessages);
 router.post("/send/:id", protectedRoute, sendMessage);
 
 // ✅ Your upload route
-router.post("/upload", protectedRoute, upload.single("image"), uploadImage);
+router.post(
+  "/upload",
+  protectedRoute,
+  upload.single("image"),
+  uploadImage,
+  awardCollaboratorBadge
+);
 
 export default router;

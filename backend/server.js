@@ -7,6 +7,7 @@ import messageRoute from "./routes/message.route.js";
 import cors from "cors";
 import { app, server } from "./lib/socket.js";
 import userRoute from "./routes/user.route.js";
+import gamificationRoutes from "./routes/gamification.routes.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 9000;
@@ -25,6 +26,7 @@ app.use(
 app.use("/api/auth", authRoute);
 app.use("/api/messages", messageRoute);
 app.use("/api/users", userRoute);
+app.use("/api/gamification", gamificationRoutes);
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
