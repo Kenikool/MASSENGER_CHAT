@@ -7,8 +7,22 @@ const fileSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // You can add more fields here like fileName, fileUrl, fileType, etc.
-    // For counting purposes, just the senderId is sufficient.
+    fileUrl: {
+      type: String,
+      required: true,
+    },
+    fileName: {
+      type: String,
+      required: true,
+    },
+    fileType: {
+      type: String,
+      required: true,
+    },
+    duration: {
+      type: Number,
+      default: 0, // For voice messages, duration in seconds
+    },
   },
   { timestamps: true }
 );

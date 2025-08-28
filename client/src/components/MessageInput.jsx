@@ -48,7 +48,6 @@
 //     }
 //   };
 
-
 //   return (
 //     <div className="p-4 w-full">
 //       {imagePreview && (
@@ -111,21 +110,40 @@
 
 // export default MessageInput;
 
-
-
 // components/MessageInput.jsx
 import { useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X, Download } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSocketContext } from "../hooks/useSocketContext";
+import { useAuthStore } from "../store/useAuthStore";
+import { useEffect } from "react";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0); 
-  const [isSending, setIsSending] = useState(false); 
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, selectedUser } = useChatStore();
+  const { socket } = useSocketContext();
+  const { authUser } = useAuthStore();
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        if (socket && selectedUser && authUser && isTyping) {
+          socket.emit("stopTyping", {
+            receiverId: selectedUser._id,
+            senderId: authUser._id,
+          });
+        }
+      }
+    };
+  }, [socket, selectedUser, authUser, isTyping]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -155,7 +173,7 @@ const MessageInput = () => {
   const handleDownload = (e) => {
     e.preventDefault();
     if (!imagePreview) return;
-    
+
     const link = document.createElement("a");
     link.href = imagePreview;
     link.download = `chat-image-${Date.now()}.png`;
@@ -200,22 +218,24 @@ const MessageInput = () => {
               className={`w-20 h-20 object-cover rounded-lg border border-zinc-700
                 ${isSending && uploadProgress < 100 ? "blur-sm" : ""}`}
             />
-            
+
             {/* ✅ Show progress indicator only when sending and progress is less than 100 */}
             {isSending && uploadProgress < 100 && (
-              <div
-                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg"
-              >
-                 <div
-                    className="radial-progress text-white"
-                    style={{ "--value": uploadProgress, "--size": "2rem", "--thickness": "3px" }}
-                    role="progressbar"
-                 >
-                   {uploadProgress}%
-                 </div>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                <div
+                  className="radial-progress text-white"
+                  style={{
+                    "--value": uploadProgress,
+                    "--size": "2rem",
+                    "--thickness": "3px",
+                  }}
+                  role="progressbar"
+                >
+                  {uploadProgress}%
+                </div>
               </div>
             )}
-            
+
             {/* ✅ Show download button only when not sending */}
             {!isSending && (
               <button
@@ -223,7 +243,7 @@ const MessageInput = () => {
                 className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-lg transition-opacity opacity-0 hover:opacity-100"
                 type="button"
               >
-                 <Download className="size-6" />
+                <Download className="size-6" />
               </button>
             )}
 
@@ -248,7 +268,28 @@ const MessageInput = () => {
             className="w-full input input-bordered rounded-lg input-sm sm:input-md"
             placeholder="Type a message..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (socket && selectedUser && authUser) {
+                if (!isTyping) {
+                  setIsTyping(true);
+                  socket.emit("typing", {
+                    receiverId: selectedUser._id,
+                    senderId: authUser._id,
+                  });
+                }
+                if (typingTimeoutRef.current) {
+                  clearTimeout(typingTimeoutRef.current);
+                }
+                typingTimeoutRef.current = setTimeout(() => {
+                  setIsTyping(false);
+                  socket.emit("stopTyping", {
+                    receiverId: selectedUser._id,
+                    senderId: authUser._id,
+                  });
+                }, 1000);
+              }
+            }}
             disabled={isSending}
           />
           <input

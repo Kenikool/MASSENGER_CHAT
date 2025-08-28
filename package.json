@@ -15,10 +15,12 @@
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dayjs": "^1.11.13",
+    "dompurify": "^3.2.6",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
+    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mailtrap": "^4.2.0",
     "mongoose": "^8.18.0",
@@ -26,7 +28,8 @@
     "nodemailer": "^6.10.1",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
-    "speakeasy": "^2.0.0"
+    "speakeasy": "^2.0.0",
+    "ua-parser-js": "^2.0.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

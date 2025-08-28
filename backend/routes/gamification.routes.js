@@ -4,7 +4,7 @@ import {
   getUserAchievements,
   getBadgeProgress,
 } from "../controllers/gamification.controller.js";
-import { protectedRoute } from "../middleware/auth.middlware.js";
+import { protectedRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 

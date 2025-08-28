@@ -90,8 +90,14 @@ export const sendVerificationEmail = async (
   verificationToken
 ) => {
   try {
+    console.log(`Attempting to send verification email to: ${userEmail}`);
+    console.log(`Verification token: ${verificationToken}`);
+    
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const animationGifUrl = "https://example.com/your-animated-gif.gif";
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    const verificationLink = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+    console.log(`Verification link: ${verificationLink}`);
 
     const mailOptions = {
       from: "noreply@chatty.com",
@@ -100,10 +106,12 @@ export const sendVerificationEmail = async (
       html: simpleHtmlTemplate(username, animationGifUrl, verificationLink),
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log("Verification email sent successfully!");
+    const result = await transporter.sendMail(mailOptions);
+    console.log("Verification email sent successfully!", result.messageId);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("Error sending verification email:", error);
+    throw error; // Re-throw to handle in controller
   }
 };
 
@@ -113,7 +121,8 @@ export const sendChangeEmailVerification = async (
   token
 ) => {
   try {
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email-change?token=${token}`;
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const verificationLink = `${frontendUrl}/verify-email-change?token=${token}`;
     // You can create a separate HTML template for this email or reuse the existing one with a modified message.
     const mailOptions = {
       from: "noreply@chatty.com",
@@ -145,5 +154,55 @@ export const sendChangeEmailVerification = async (
     console.log("Change email verification email sent successfully!");
   } catch (error) {
     console.error("Error sending change email verification email:", error);
+  }
+};
+
+export const sendMagicLinkEmail = async (
+  userEmail,
+  username,
+  magicLinkToken
+) => {
+  try {
+    console.log(`Attempting to send magic link email to: ${userEmail}`);
+    console.log(`Magic link token: ${magicLinkToken}`);
+    
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const magicLink = `${frontendUrl}/magic-login/${magicLinkToken}`;
+    
+    console.log(`Magic link: ${magicLink}`);
+    
+    const mailOptions = {
+      from: "noreply@chatty.com",
+      to: userEmail,
+      subject: "Your Magic Login Link for Chatty",
+      html: `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Magic Login</title>
+                </head>
+                <body>
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                        <h2 style="color: #333;">Hello ${username},</h2>
+                        <p>Click the link below to instantly log in to your Chatty account:</p>
+                        <a href="${magicLink}" style="display: inline-block; padding: 10px 20px; margin: 20px 0; background-color: #007BFF; color: #fff; text-decoration: none; border-radius: 5px;">
+                            Login with Magic Link
+                        </a>
+                        <p>This link is valid for 1 hour. If you did not request this, please ignore this email.</p>
+                        <p style="font-size: 12px; color: #888;">Token: ${magicLinkToken}</p>
+                    </div>
+                </body>
+                </html>
+            `,
+    };
+    
+    const result = await transporter.sendMail(mailOptions);
+    console.log("Magic login email sent successfully!", result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error("Error sending magic login email:", error);
+    throw error; // Re-throw to handle in controller
   }
 };

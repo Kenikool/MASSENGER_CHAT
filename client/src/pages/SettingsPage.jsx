@@ -3,6 +3,12 @@ import gsap from "gsap";
 import * as THREE from "three";
 import { useThemeStore } from "../store/useThemeStore";
 import { THEMES } from "../constants";
+import { toast } from "react-hot-toast";
+import axiosInstance from "../lib/axios";
+import { useAuthStore } from "../store/useAuthStore";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { LogOut } from "lucide-react";
 
 // The preview component from your initial code is not needed for the theme animation,
 // so it is removed to keep the code focused.
@@ -12,6 +18,59 @@ const SettingsPage = () => {
   const containerRef = useRef(null);
   const webglRef = useRef(null);
   const webglColor = useRef(new THREE.Color(0x9f7aea)); // Initial color for the 3D object
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const { logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setLoadingSessions(true);
+      try {
+        const res = await axiosInstance.get("/auth/sessions");
+        setSessions(res.data);
+      } catch (error) {
+        toast.error(error.response?.data?.error || "Failed to fetch sessions.");
+      } finally {
+        setLoadingSessions(false);
+      }
+    };
+    fetchSessions();
+  }, []);
+
+  const handleRevokeSession = async (sessionId) => {
+    try {
+      await axiosInstance.delete(`/auth/sessions/${sessionId}`);
+      setSessions(sessions.filter((session) => session._id !== sessionId));
+      toast.success("Session revoked successfully.");
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to revoke session.");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast.error("Please enter your password to confirm.");
+      return;
+    }
+    try {
+      await axiosInstance.delete("/auth/delete-account", {
+        data: { currentPassword: deletePassword }, // DELETE requests with body require 'data' key
+      });
+      toast.success("Account deleted successfully.");
+      logout(); // Clear auth state
+      navigate("/login"); // Redirect to login
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to delete account.");
+    } finally {
+      setShowDeleteModal(false);
+      setDeletePassword("");
+    }
+  };
 
   // Stagger-in on mount animation for the buttons
   useEffect(() => {
@@ -251,7 +310,87 @@ const SettingsPage = () => {
             );
           })}
         </div>
+
+        {/* Active Sessions Section */}
+        <div className="mt-12 p-6 md:p-10 backdrop-blur-md rounded-2xl bg-base-100/30 border border-base-200 shadow-xl text-center">
+          <h2 className="text-2xl font-bold mb-4">Active Sessions</h2>
+          {loadingSessions ? (
+            <p>Loading sessions...</p>
+          ) : sessions.length > 0 ? (
+            <div className="space-y-4 text-left">
+              {sessions.map((session) => (
+                <div
+                  key={session._id}
+                  className="flex justify-between items-center bg-base-100 p-4 rounded-lg border border-base-300"
+                >
+                  <div>
+                    <p className="font-medium">{session.userAgent}</p>
+                    <p className="text-sm text-base-content/60">
+                      Logged in: {format(new Date(session.createdAt), "PPP p")}
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-warning btn-sm gap-2"
+                    onClick={() => handleRevokeSession(session._id)}
+                  >
+                    <LogOut className="size-4" /> Revoke
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-base-content/70">No active sessions found.</p>
+          )}
+        </div>
+
+        {/* Account Deletion Section */}
+        <div className="mt-12 p-6 md:p-10 backdrop-blur-md rounded-2xl bg-base-100/30 border border-base-200 shadow-xl text-center">
+          <h2 className="text-2xl font-bold text-error mb-4">Danger Zone</h2>
+          <p className="text-base-content/70 mb-6">
+            Permanently delete your account and all associated data. This action
+            cannot be undone.
+          </p>
+          <button
+            className="btn btn-error btn-wide"
+            onClick={() => setShowDeleteModal(true)}
+          >
+            Delete Account
+          </button>
+        </div>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-base-200 rounded-lg p-6 w-full max-w-md space-y-4">
+            <h3 className="font-bold text-lg text-error">
+              Confirm Account Deletion
+            </h3>
+            <p>
+              This action is irreversible. Please enter your password to confirm
+              that you want to permanently delete your account.
+            </p>
+            <input
+              type="password"
+              placeholder="Your Password"
+              className="input input-bordered w-full"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+            />
+            <div className="modal-action flex justify-end gap-2">
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-error" onClick={handleDeleteAccount}>
+                Delete My Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

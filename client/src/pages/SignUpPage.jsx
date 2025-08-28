@@ -12,6 +12,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import AuthImagePattern from "../components/AuthImagePattern";
+import { validatePassword } from "../lib/passwordValidator";
 
 const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +21,7 @@ const SignUpPage = () => {
     email: "",
     password: "",
   });
+  const [passwordErrors, setPasswordErrors] = useState([]);
   const { signup, loading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -40,8 +42,9 @@ const SignUpPage = () => {
       toast.error("Password is required");
       return false;
     }
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    const errors = validatePassword(formData.password);
+    if (errors.length > 0) {
+      errors.forEach((error) => toast.error(error));
       return false;
     }
     return true;
@@ -147,9 +150,10 @@ const SignUpPage = () => {
                   className={`input input-bordered w-full pl-10`}
                   placeholder="••••••••"
                   value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    setPasswordErrors(validatePassword(e.target.value));
+                  }}
                 />
                 <button
                   type="button"
@@ -163,6 +167,13 @@ const SignUpPage = () => {
                   )}
                 </button>
               </div>
+              {passwordErrors.length > 0 && (
+                <div className="text-red-500 text-sm mt-2">
+                  {passwordErrors.map((error, idx) => (
+                    <p key={idx}>{error}</p>
+                  ))}
+                </div>
+              )}
             </div>
 
             <button

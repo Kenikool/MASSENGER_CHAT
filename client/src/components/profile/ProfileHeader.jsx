@@ -1,17 +1,23 @@
 import { Camera, Edit, Save, User } from "lucide-react";
+import { useSocketContext } from "../../hooks/useSocketContext";
 
 const ProfileHeader = ({
   authUser,
   loading,
-  isOnline,
-  lastSeen,
   getProfilePicUrl,
   handleImageUpload,
   setIsModalOpen,
   editMode,
   setEditMode,
   handleSaveDetails,
-}) => (
+}) => {
+  const { onlineUsers } = useSocketContext();
+  const isOnline = onlineUsers.includes(authUser?._id);
+  const lastSeen = authUser?.lastSeen
+    ? new Date(authUser.lastSeen).toLocaleString()
+    : "Never";
+
+  return (
   <div className="text-center flex flex-col items-center gap-2">
     <div className="flex justify-between items-center w-full max-w-xs">
       <div></div>
@@ -69,11 +75,21 @@ const ProfileHeader = ({
       </p>
     </div>
     <div className="text-center">
-      <span className={`badge ${isOnline ? "badge-success" : "badge-ghost"}`}>
-        {isOnline ? "Online" : `Last seen ${lastSeen}`}
-      </span>
+      <div className={`flex items-center justify-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+        isOnline 
+          ? "bg-green-100 text-green-800 border border-green-200" 
+          : "bg-gray-100 text-gray-600 border border-gray-200"
+      }`}>
+        <div className={`w-2 h-2 rounded-full ${
+          isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"
+        }`}></div>
+        <span>
+          {isOnline ? "Online" : `Last seen ${lastSeen}`}
+        </span>
+      </div>
     </div>
   </div>
-);
+  );
+};
 
 export default ProfileHeader;

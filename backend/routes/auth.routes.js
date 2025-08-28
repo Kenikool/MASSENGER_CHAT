@@ -15,8 +15,14 @@ import {
   requestEmailChange,
   verifyEmailChange,
   markBadgeAsSeen,
+  resendVerificationEmail,
+  requestMagicLink,
+  magicLogin,
+  deleteAccount,
+  getSessions,
+  revokeSession,
 } from "../controllers/auth.controller.js";
-import { protectedRoute } from "../middleware/auth.middlware.js";
+import { protectedRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -25,7 +31,7 @@ router.post("/login", login);
 router.post("/logout", logout);
 
 // ✅ Add the new email verification routes
-router.post("/verify-account", verifyAccount);
+router.get("/verify-account", verifyAccount);
 router.post("/request-email-change", protectedRoute, requestEmailChange);
 router.post("/verify-email-change", verifyEmailChange);
 
@@ -45,4 +51,14 @@ router.post("/disable-two-factor", protectedRoute, disableTwoFactor);
 
 // badge
 router.put("/mark-badge-seen", protectedRoute, markBadgeAsSeen);
+
+router.post("/resend-verification", resendVerificationEmail);
+
+router.post("/request-magic-link", requestMagicLink);
+router.get("/magic-login/:token", magicLogin);
+router.delete("/delete-account", protectedRoute, deleteAccount);
+
+router.get("/sessions", protectedRoute, getSessions);
+router.delete("/sessions/:sessionId", protectedRoute, revokeSession);
+
 export default router;

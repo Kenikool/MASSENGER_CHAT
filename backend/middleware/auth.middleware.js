@@ -12,7 +12,9 @@ export const protectedRoute = async (req, res, next) => {
     }
 
     // Wrap jwt.verify in a try-catch for specific JWT errors
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret =
+      process.env.JWT_SECRET || "fallback_secret_key_for_development";
+    const decoded = jwt.verify(token, jwtSecret);
 
     const user = await User.findById(decoded.userId).select("-password");
 

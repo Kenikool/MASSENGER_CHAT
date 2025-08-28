@@ -14,6 +14,8 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import { useThemeStore } from "./store/useThemeStore";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import VerifyEmailChangePage from "./pages/VerifyEmailChangePage";
+import PublicProfilePage from "./pages/PublicProfilePage";
+import MagicLoginPage from "./pages/MagicLoginPage";
 const App = () => {
   const { checkingAuth, checkAuth, authUser } = useAuthStore();
 
@@ -61,6 +63,8 @@ const App = () => {
             path="/verify-email-change"
             element={<VerifyEmailChangePage />}
           />
+          <Route path="/profile/:userId" element={<PublicProfilePage />} />
+          <Route path="/magic-login/:token" element={<MagicLoginPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

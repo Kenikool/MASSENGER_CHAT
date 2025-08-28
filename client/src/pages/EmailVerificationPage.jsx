@@ -25,12 +25,12 @@ const EmailVerificationPage = () => {
         setStatus("success");
         setMessage(
           res.data.message ||
-            "Email verified successfully! Redirecting you now..."
+            "Email verified successfully! Redirecting you to login..."
         );
-        // The backend redirects the user, but you can add a manual client-side redirect as a fallback
-        // setTimeout(() => {
-        //     window.location.href = '/chat';
-        // }, 2000);
+        // Client-side redirect after a delay
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 10000); // 10 seconds
       } catch (error) {
         setStatus("error");
         setMessage(

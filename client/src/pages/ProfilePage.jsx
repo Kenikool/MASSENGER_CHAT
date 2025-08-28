@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  lazy,
+  Suspense,
+  useCallback,
+} from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import {
   Award,
@@ -22,13 +29,18 @@ import axiosInstance from "../lib/axios";
 // Import components
 import ProfileHeader from "../components/profile/ProfileHeader";
 import ProfileDetails from "../components/profile/ProfileDetails";
-import UserStats from "../components/profile/UserStats";
-import BadgesDisplay from "../components/profile/BadgesDisplay";
+// import UserStats from "../components/profile/UserStats"; // Lazy loaded
+// import BadgesDisplay from "../components/profile/BadgesDisplay"; // Lazy loaded
 import BadgeProgressBar from "../components/profile/BadgeProgressBar";
 import Leaderboard from "../components/profile/Leaderboard";
 import TwoFactorAuth from "../components/profile/TwoFactorAuth";
 import ChangePassword from "../components/profile/ChangePassword";
 import EmailChangeForm from "../components/profile/EmailChangeForm";
+
+const LazyUserStats = lazy(() => import("../components/profile/UserStats"));
+const LazyBadgesDisplay = lazy(() =>
+  import("../components/profile/BadgesDisplay")
+);
 
 dayjs.extend(relativeTime);
 
@@ -90,10 +102,7 @@ const ProfilePage = () => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
 
-  const isOnline = onlineUsers.includes(authUser?._id);
-  const lastSeen = authUser?.lastSeen
-    ? dayjs(authUser.lastSeen).fromNow()
-    : "Never";
+  // Online status is now handled in ProfileHeader component
 
   const prevBadges = usePrevious(authUser?.badges);
   useEffect(() => {
@@ -157,40 +166,43 @@ const ProfilePage = () => {
     return selectedImg || authUser?.profilePic || "/avatar.png";
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleImageUpload = useCallback(
+    async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
 
-    reader.onload = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
-    };
-  };
+      reader.onload = async () => {
+        const base64Image = reader.result;
+        setSelectedImg(base64Image);
+        await updateProfile({ profilePic: base64Image });
+      };
+    },
+    [updateProfile]
+  );
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
+  const handleInputChange = useCallback((e) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
       [e.target.name]: e.target.value,
-    });
-  };
+    }));
+  }, []);
 
-  const handleSaveDetails = async () => {
+  const handleSaveDetails = useCallback(async () => {
     if (!formData.fullName) {
       toast.error("Full Name is required.");
       return;
     }
     await updateDetails({ fullName: formData.fullName, about: formData.about });
     setEditMode(false);
-  };
+  }, [formData.fullName, formData.about, updateDetails]);
 
-  const handleBadgeModalClose = () => {
+  const handleBadgeModalClose = useCallback(() => {
     markBadgeAsSeen(newlyEarnedBadge);
     setNewlyEarnedBadge(null);
-  };
+  }, [markBadgeAsSeen, newlyEarnedBadge]);
 
   if (checkingAuth) {
     return (
@@ -225,8 +237,6 @@ const ProfilePage = () => {
             <ProfileHeader
               authUser={authUser}
               loading={loading}
-              isOnline={isOnline}
-              lastSeen={lastSeen}
               getProfilePicUrl={getProfilePicUrl}
               handleImageUpload={handleImageUpload}
               setIsModalOpen={setIsModalOpen}
@@ -243,21 +253,17 @@ const ProfilePage = () => {
             />
                         <hr className="border-t border-base-content/10" />     
                  {" "}
-            {/* Account Security section (now directly in this component) */}   
-                   {" "}
+            {/* Account Security section */}   
             <div className="space-y-4">
-                            {/* Email Address */}             {" "}
+              {/* Email Address with Change Option */}
               <div className="space-y-1.5">
-                               {" "}
                 <div className="text-sm text-zinc-400 flex items-center gap-2">
-                                    <Mail className="w-4 h-4" /> Email Address  
-                               {" "}
+                  <Mail className="w-4 h-4" /> Email Address
                 </div>
-                               {" "}
                 <p className="px-4 py-2.5 bg-base-200 rounded-lg border">
-                                    {authUser?.email}               {" "}
+                  {authUser?.email}
                 </p>
-                                <EmailChangeForm />             {" "}
+                <EmailChangeForm />
               </div>
                             {/* Change Password Button */}             {" "}
               <button
@@ -312,10 +318,32 @@ const ProfilePage = () => {
             </div>
                         <hr className="border-t border-base-content/10" />     
                  {" "}
-            <UserStats userStats={userStats} statsLoading={statsLoading} />
+            <Suspense
+              fallback={
+                <div className="flex justify-center">
+                  <span className="loading loading-spinner"></span>
+                </div>
+              }
+            >
+              <LazyUserStats
+                userStats={userStats}
+                statsLoading={statsLoading}
+              />
+            </Suspense>
                         <hr className="border-t border-base-content/10" />     
                  {" "}
-            <BadgesDisplay userStats={userStats} badgeIcons={badgeIcons} />
+            <Suspense
+              fallback={
+                <div className="flex justify-center">
+                  <span className="loading loading-spinner"></span>
+                </div>
+              }
+            >
+              <LazyBadgesDisplay
+                userStats={userStats}
+                badgeIcons={badgeIcons}
+              />
+            </Suspense>
                         <hr className="border-t border-base-content/10" />     
                   {/* Leaderboard */}
                         <Leaderboard />         {" "}

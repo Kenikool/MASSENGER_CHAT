@@ -66,3 +66,132 @@ export const getUserStats = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getPublicProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (!user.isPublic) {
+      return res.status(403).json({ error: "This profile is private." });
+    }
+
+    // Return only public data
+    const publicProfile = {
+      fullName: user.fullName,
+      profilePic: user.profilePic,
+      about: user.about,
+      status: user.status,
+      profileTheme: user.profileTheme,
+      socialMediaLinks: user.socialMediaLinks,
+      publicBadges: user.publicBadges,
+    };
+
+    res.status(200).json(publicProfile);
+  } catch (error) {
+    console.error("Error in getPublicProfile controller:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const updateStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const userId = req.user._id;
+
+    if (!status) {
+      return res.status(400).json({ error: "Status is required." });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { status },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in updateStatus controller:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const updateProfileCustomization = async (req, res) => {
+  try {
+    const { profileTheme, socialMediaLinks, isPublic, publicBadges } = req.body;
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (profileTheme) {
+      user.profileTheme = profileTheme;
+    }
+
+    if (socialMediaLinks) {
+      user.socialMediaLinks = socialMediaLinks;
+    }
+
+    if (typeof isPublic === "boolean") {
+      user.isPublic = isPublic;
+    }
+
+    if (publicBadges && Array.isArray(publicBadges)) {
+      user.publicBadges = publicBadges;
+    }
+
+    await user.save();
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error(
+      "Error in updateProfileCustomization controller:",
+      error.message
+    );
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getPublicStats = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    
+    // Only return stats if profile is public
+    if (!user.isPublic) {
+      return res.status(403).json({ error: "This user's statistics are private." });
+    }
+    
+    // Get basic public statistics
+    const messageCount = await Message.countDocuments({ senderId: userId });
+    const badgeCount = user.badges ? user.badges.length : 0;
+    const accountAgeDays = dayjs().diff(dayjs(user.createdAt), "day");
+    
+    res.status(200).json({
+      messageCount,
+      badgeCount,
+      accountAgeDays,
+      joinedDate: user.createdAt
+    });
+  } catch (error) {
+    console.error("Error in getPublicStats controller:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
