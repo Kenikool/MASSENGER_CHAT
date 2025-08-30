@@ -57,7 +57,7 @@ const Sidebar = () => {
       </div>
       <div className="overflow-y-auto w-full py-3">
         {filteredUsers.map((user) => (
-          <button
+          <div
             key={user._id}
             onClick={() => setSelectedUser(user)}
             className={`
@@ -96,17 +96,25 @@ const Sidebar = () => {
             <div className="hidden lg:block text-left min-w-0">
               <div className="font-medium truncate">{user.fullName}</div>
               <div className="flex items-center gap-1 text-sm">
-                <div className={`w-2 h-2 rounded-full ${
-                  onlineUsers.includes(user._id) 
-                    ? "bg-green-500" 
-                    : "bg-gray-400"
-                }`}></div>
-                <span className={onlineUsers.includes(user._id) ? "text-green-600" : "text-zinc-400"}>
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    onlineUsers.includes(user._id)
+                      ? "bg-green-500"
+                      : "bg-gray-400"
+                  }`}
+                ></div>
+                <span
+                  className={
+                    onlineUsers.includes(user._id)
+                      ? "text-green-600"
+                      : "text-zinc-400"
+                  }
+                >
                   {onlineUsers.includes(user._id) ? "Online" : "Offline"}
                 </span>
               </div>
             </div>
-          </button>
+          </div>
         ))}
 
         {filteredUsers.length === 0 && (

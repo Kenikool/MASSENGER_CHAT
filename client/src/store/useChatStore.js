@@ -39,12 +39,37 @@ export const useChatStore = create((set, get) => ({
 
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
-    const { text, image, voiceMessage, voiceDuration, hasFormatting, onUploadProgress } = messageData;
+    const {
+      text,
+      image,
+      voiceMessage,
+      voiceDuration,
+      hasFormatting,
+      onUploadProgress,
+    } = messageData;
     const authUser = useAuthStore.getState().authUser;
+
+    if (!selectedUser) {
+      toast.error("No chat selected. Please select a user to send a message.");
+      throw new Error("No selected user");
+    }
 
     try {
       let imageUrl = null;
       let voiceUrl = null;
+      let targetEndpoint = "";
+      let finalMessageData = {
+        text,
+        hasFormatting,
+      };
+
+      if (selectedUser.isGroup) {
+        targetEndpoint = "/messages/send-group";
+        finalMessageData.groupId = selectedUser._id;
+      } else {
+        targetEndpoint = `/messages/send/${selectedUser._id}`;
+        finalMessageData.receiverId = selectedUser._id;
+      }
 
       // Handle image upload
       if (image) {
@@ -66,18 +91,21 @@ export const useChatStore = create((set, get) => ({
           }
         );
         imageUrl = uploadRes.data.imageUrl;
+        finalMessageData.imageUrl = imageUrl;
       }
 
       // Handle voice message upload
       if (voiceMessage) {
-        console.log('Uploading voice message...');
-        
-        // Convert base64 to blob
-        const response = await fetch(voiceMessage);
-        const blob = await response.blob();
-        
+        console.log("Uploading voice message...");
+        console.log(
+          "Type of voiceMessage before FormData append:",
+          typeof voiceMessage,
+          ", is Blob instance:",
+          voiceMessage instanceof Blob
+        );
+
         const formData = new FormData();
-        formData.append("voice", blob, `voice-${Date.now()}.webm`);
+        formData.append("voice", voiceMessage, `voice-${Date.now()}.webm`);
         formData.append("duration", voiceDuration.toString());
 
         const uploadRes = await axiosInstance.post(
@@ -94,17 +122,11 @@ export const useChatStore = create((set, get) => ({
           }
         );
         voiceUrl = uploadRes.data.voiceUrl;
+        finalMessageData.voiceUrl = voiceUrl;
+        finalMessageData.voiceDuration = voiceDuration;
       }
 
-      const finalMessageData = {
-        text,
-        imageUrl,
-        voiceUrl,
-        voiceDuration,
-        hasFormatting
-      };
-
-      console.log('Sending message data:', finalMessageData);
+      console.log("Sending message data:", finalMessageData);
 
       // Create optimistic message for immediate UI update
       const optimisticMessage = {
@@ -115,110 +137,138 @@ export const useChatStore = create((set, get) => ({
         voiceDuration,
         hasFormatting,
         senderId: authUser._id,
-        receiverId: selectedUser._id,
-        status: 'sending',
+        status: "sending",
         createdAt: new Date().toISOString(),
-        reactions: []
+        reactions: [],
       };
+
+      if (selectedUser.isGroup) {
+        optimisticMessage.groupId = selectedUser._id;
+      } else {
+        optimisticMessage.receiverId = selectedUser._id;
+      }
 
       // Immediately add to UI
       set({ messages: [...messages, optimisticMessage] });
 
-      const res = await axiosInstance.post(
-        `/messages/send/${selectedUser._id}`,
-        finalMessageData
-      );
+      const res = await axiosInstance.post(targetEndpoint, finalMessageData);
 
       // Replace optimistic message with real message
-      set(state => ({
-        messages: state.messages.map(msg => 
+      set((state) => ({
+        messages: state.messages.map((msg) =>
           msg._id === optimisticMessage._id ? res.data : msg
-        )
+        ),
       }));
 
       return res.data;
     } catch (error) {
       console.error("Failed to send message:", error);
-      
+
       // Remove optimistic message on error
-      set(state => ({
-        messages: state.messages.filter(msg => !msg._id.startsWith('temp-'))
+      set((state) => ({
+        messages: state.messages.filter((msg) => !msg._id.startsWith("temp-")),
       }));
-      
+
       toast.error(error.response?.data?.message || "Failed to send message");
       throw error;
     }
+  },
+
+  // Placeholder for fetching groups - will be implemented later
+  getGroups: async () => {
+    console.log("Fetching groups (not yet implemented)");
+    // Actual implementation to fetch groups from backend
+    // try {
+    //   const res = await axiosInstance.get("/groups");
+    //   set({ groups: res.data || [] });
+    // } catch (error) {
+    //   console.error("Failed to fetch groups:", error);
+    //   toast.error(error.response?.data?.message || "Failed to fetch groups");
+    // }
   },
 
   subscribeToMessages: (socket) => {
     const { selectedUser } = get();
     if (!selectedUser || !socket) return;
 
-    console.log('Subscribing to messages for user:', selectedUser._id);
+    console.log("Subscribing to messages for user:", selectedUser._id);
 
     socket.on("newMessage", (newMessage) => {
-      console.log('📡 Received new message event:', {
+      console.log("📡 Received new message event:", {
         messageId: newMessage._id,
         text: newMessage.text,
         senderId: newMessage.senderId,
         receiverId: newMessage.receiverId,
-        timestamp: newMessage.createdAt
+        timestamp: newMessage.createdAt,
       });
-      
+
       const authUser = useAuthStore.getState().authUser;
       const currentSelectedUser = get().selectedUser;
-      
-      console.log('📡 Socket context check:', {
+
+      console.log("📡 Socket context check:", {
         authUserId: authUser._id,
         selectedUserId: selectedUser._id,
         currentSelectedUserId: currentSelectedUser?._id,
         messageFromUser: newMessage.senderId,
-        messageToUser: newMessage.receiverId
+        messageToUser: newMessage.receiverId,
       });
-      
+
       // Only process if we're still in the same conversation
-      if (!currentSelectedUser || currentSelectedUser._id !== selectedUser._id) {
-        console.log('⚠️ Ignoring message - conversation changed');
+      if (
+        !currentSelectedUser ||
+        currentSelectedUser._id !== selectedUser._id
+      ) {
+        console.log("⚠️ Ignoring message - conversation changed");
         return;
       }
-      
+
       // Check if message belongs to current conversation
-      const isRelevantMessage = 
-        (newMessage.senderId === selectedUser._id && newMessage.receiverId === authUser._id) ||
-        (newMessage.senderId === authUser._id && newMessage.receiverId === selectedUser._id);
-      
-      console.log('📡 Message relevance check:', {
+      const isRelevantMessage =
+        (newMessage.senderId === selectedUser._id &&
+          newMessage.receiverId === authUser._id) ||
+        (newMessage.senderId === authUser._id &&
+          newMessage.receiverId === selectedUser._id);
+
+      console.log("📡 Message relevance check:", {
         isRelevantMessage,
-        condition1: newMessage.senderId === selectedUser._id && newMessage.receiverId === authUser._id,
-        condition2: newMessage.senderId === authUser._id && newMessage.receiverId === selectedUser._id
+        condition1:
+          newMessage.senderId === selectedUser._id &&
+          newMessage.receiverId === authUser._id,
+        condition2:
+          newMessage.senderId === authUser._id &&
+          newMessage.receiverId === selectedUser._id,
       });
-      
+
       if (isRelevantMessage) {
         // Check if message already exists (avoid duplicates)
         const currentMessages = get().messages;
-        const messageExists = currentMessages.some(msg => msg._id === newMessage._id);
-        
-        console.log('📡 Duplicate check:', {
+        const messageExists = currentMessages.some(
+          (msg) => msg._id === newMessage._id
+        );
+
+        console.log("📡 Duplicate check:", {
           messageExists,
           currentMessageCount: currentMessages.length,
-          newMessageId: newMessage._id
+          newMessageId: newMessage._id,
         });
-        
+
         if (!messageExists) {
           // Remove any optimistic messages that might match
-          const filteredMessages = currentMessages.filter(msg => 
-            !msg._id.startsWith('temp-') || 
-            (msg.text !== newMessage.text || msg.senderId !== newMessage.senderId)
+          const filteredMessages = currentMessages.filter(
+            (msg) =>
+              !msg._id.startsWith("temp-") ||
+              msg.text !== newMessage.text ||
+              msg.senderId !== newMessage.senderId
           );
-          
-          console.log('✅ Adding new message to store');
+
+          console.log("✅ Adding new message to store");
           set({
             messages: [...filteredMessages, newMessage],
           });
-          
+
           // Emit a messageDelivered event back to the server if it's not my message
           if (newMessage.senderId !== authUser._id && socket) {
-            console.log('📡 Emitting messageDelivered confirmation');
+            console.log("📡 Emitting messageDelivered confirmation");
             socket.emit("messageDelivered", {
               messageId: newMessage._id,
               receiverId: authUser._id,
@@ -226,20 +276,22 @@ export const useChatStore = create((set, get) => ({
             });
           }
         } else {
-          console.log('⚠️ Message already exists, skipping');
+          console.log("⚠️ Message already exists, skipping");
         }
       } else {
-        console.log('⚠️ Message not relevant to current conversation');
+        console.log("⚠️ Message not relevant to current conversation");
       }
     });
-    
+
     // Also listen for group messages
     socket.on("newGroupMessage", (newMessage) => {
-      console.log('Received new group message:', newMessage);
+      console.log("Received new group message:", newMessage);
       // Add group message handling if needed
       const currentMessages = get().messages;
-      const messageExists = currentMessages.some(msg => msg._id === newMessage._id);
-      
+      const messageExists = currentMessages.some(
+        (msg) => msg._id === newMessage._id
+      );
+
       if (!messageExists) {
         set({
           messages: [...currentMessages, newMessage],
@@ -250,7 +302,7 @@ export const useChatStore = create((set, get) => ({
 
   unsubscribeFromMessages: (socket) => {
     if (socket) {
-      console.log('Unsubscribing from messages');
+      console.log("Unsubscribing from messages");
       socket.off("newMessage");
       socket.off("newGroupMessage");
     }

@@ -223,6 +223,15 @@ const ChatContainer = () => {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingMessageText, setEditingMessageText] = useState("");
 
+  // New helper function to format the time for audio messages
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes < 10 ? "0" : ""}${minutes}:${
+      remainingSeconds < 10 ? "0" : ""
+    }${remainingSeconds}`;
+  };
+
   // New useEffect to create a single array of all images
   const allImages = messages.flatMap((message) => {
     if (Array.isArray(message.images)) {
@@ -248,13 +257,22 @@ const ChatContainer = () => {
 
   useEffect(() => {
     if (selectedUser?._id) {
+      console.log(
+        "ChatContainer: Fetching messages and subscribing to socket for",
+        selectedUser._id
+      );
       getMessages(selectedUser._id);
       subscribeToMessages();
 
       // Mark messages as read when the chat is opened/focused
-      axiosInstance.put(`/messages/markAsRead/${selectedUser._id}`);
+      axiosInstance
+        .put(`/messages/markAsRead/${selectedUser._id}`)
+        .catch((error) => {
+          console.error("Error marking messages as read:", error);
+        });
 
       return () => {
+        console.log("ChatContainer: Unsubscribing from messages");
         unsubscribeFromMessages();
       };
     }
@@ -262,28 +280,37 @@ const ChatContainer = () => {
 
   useEffect(() => {
     if (!socket) return;
+    console.log("ChatContainer: Setting up socket listeners.");
 
     socket.on("typing", (senderId) => {
+      console.log("ChatContainer: Received typing event from", senderId);
       if (senderId === selectedUser?._id) {
         setIsTyping(true);
       }
     });
 
     socket.on("stopTyping", (senderId) => {
+      console.log("ChatContainer: Received stopTyping event from", senderId);
       if (senderId === selectedUser?._id) {
         setIsTyping(false);
       }
     });
 
     socket.on("messagesRead", ({ senderId, messageIds }) => {
-      // This event is emitted by the server to the sender when their messages are read.
-      // We need to update the status of these messages in the sender's chat view.
+      console.log("ChatContainer: Received messagesRead event", {
+        senderId,
+        messageIds,
+      });
       if (senderId === selectedUser?._id) {
         markMessagesAsReadStore(messageIds);
       }
     });
 
     socket.on("messageDelivered", ({ messageId, receiverId }) => {
+      console.log("ChatContainer: Received messageDelivered event", {
+        messageId,
+        receiverId,
+      });
       // This event is emitted by the server to the sender when their message is delivered.
       if (receiverId === authUser?._id) {
         markMessagesAsDeliveredStore(messageId);
@@ -291,16 +318,29 @@ const ChatContainer = () => {
     });
 
     socket.on("messageUpdated", (updatedMessage) => {
+      console.log(
+        "ChatContainer: Received messageUpdated event",
+        updatedMessage
+      );
       // If a message is edited or deleted, update it in the store
       editMessageStore(updatedMessage);
     });
 
+    // Add listener for new group messages
+    socket.on("newGroupMessage", (newMessage) => {
+      console.log("ChatContainer: Received newGroupMessage event:", newMessage);
+      // Implement group message handling in ChatContainer if needed,
+      // though useChatStore should handle adding it to the messages array.
+    });
+
     return () => {
+      console.log("ChatContainer: Cleaning up socket listeners.");
       socket.off("typing");
       socket.off("stopTyping");
       socket.off("messagesRead");
       socket.off("messageDelivered");
       socket.off("messageUpdated");
+      socket.off("newGroupMessage");
     };
   }, [
     socket,
@@ -313,6 +353,7 @@ const ChatContainer = () => {
 
   useEffect(() => {
     if (messageEndRef.current && messages && messages.length > 0) {
+      console.log("ChatContainer: Scrolling to end of messages.");
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
@@ -389,6 +430,10 @@ const ChatContainer = () => {
 
           const isMyMessage = message.senderId === authUser._id;
           const isEditing = editingMessageId === message._id;
+
+          console.log(
+            `Message ID: ${message._id}, Sender ID: ${message.senderId}, Auth User ID: ${authUser._id}, isMyMessage: ${isMyMessage}`
+          );
 
           return (
             <div key={message._id}>
@@ -472,6 +517,21 @@ const ChatContainer = () => {
                               onClick={() => handleImageClick(image)}
                             />
                           ))}
+                        </div>
+                      )}
+
+                      {message.voiceUrl && (
+                        <div className="flex items-center gap-2 bg-base-300 rounded-lg p-2">
+                          <audio
+                            src={message.voiceUrl}
+                            controls
+                            className="w-48"
+                          ></audio>
+                          {message.voiceDuration && (
+                            <span className="text-xs text-base-content/60">
+                              {formatTime(message.voiceDuration)}
+                            </span>
+                          )}
                         </div>
                       )}
 

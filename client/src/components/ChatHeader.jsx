@@ -12,30 +12,14 @@ const ChatHeader = memo(({ isTyping }) => {
   const { authUser } = useAuthStore();
   const { onlineUsers } = useSocketContext();
   const navigate = useNavigate();
-  // Remove userStatus state and useEffect for fetching it, as it's already in selectedUser
-  // const [userStatus, setUserStatus] = useState("Offline");
 
-  // useEffect(() => {
-  //   const fetchUserStatus = async () => {
-  //     if (!selectedUser) return;
-  //     try {
-  //       const res = await axiosInstance.get(
-  //         `/users/profile/${selectedUser._id}`
-  //       );
-  //       setUserStatus(res.data.status);
-  //     } catch (error) {
-  //       console.error("Failed to fetch user status:", error);
-  //       toast.error("Failed to fetch user status.");
-  //       setUserStatus("Offline"); // Fallback to offline on error
-  //     }
-  //   };
-  //   fetchUserStatus();
-  // }, [selectedUser]);
+  const isSelectedUserOnline = onlineUsers.includes(selectedUser?._id);
 
   const displayStatus = isTyping
     ? "Typing..."
-    : selectedUser?.status ||
-      (onlineUsers.includes(selectedUser?._id) ? "Online" : "Offline");
+    : isSelectedUserOnline
+    ? "Online"
+    : selectedUser?.status || "Offline";
 
   const handleViewProfile = () => {
     if (selectedUser?._id) {
@@ -58,6 +42,9 @@ const ChatHeader = memo(({ isTyping }) => {
                 src={selectedUser.profilePic || "/avatar.png"}
                 alt={selectedUser.fullName}
               />
+              {isSelectedUserOnline && (
+                <span className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full ring-2 ring-zinc-900" />
+              )}
             </div>
           </div>
 

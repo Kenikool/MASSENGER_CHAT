@@ -2,7 +2,11 @@ import cloudinary from "../lib/cloudinary.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
-import { formatMessage, hasFormattingMarkers, getFormattingInfo } from "../utils/messageFormatter.js";
+import {
+  formatMessage,
+  hasFormattingMarkers,
+  getFormattingInfo,
+} from "../utils/messageFormatter.js";
 
 export const getUserForSidebar = async (req, res) => {
   try {
@@ -28,26 +32,26 @@ export const getMessages = async (req, res) => {
         { senderId: userToChatId, receiverId: myId },
       ],
     })
-    .populate('senderId', 'fullName profilePic')
-    .populate('receiverId', 'fullName profilePic')
-    .populate('replyTo', 'text senderId')
-    .populate('threadReplies', 'text senderId createdAt')
-    .sort({ createdAt: 1 });
-    
+      .populate("senderId", "fullName profilePic")
+      .populate("receiverId", "fullName profilePic")
+      .populate("replyTo", "text senderId")
+      .populate("threadReplies", "text senderId createdAt")
+      .sort({ createdAt: 1 });
+
     // Process formatting for each message
-    const processedMessages = messages.map(message => {
+    const processedMessages = messages.map((message) => {
       if (message.hasFormatting && message.text && !message.formattingInfo) {
         // Backward compatibility: generate formatting info for existing messages
         const formattingInfo = getFormattingInfo(message.text);
         message.formattingInfo = {
           types: formattingInfo.types,
           formattedHtml: formattingInfo.formattedHtml,
-          plainText: formattingInfo.plainText
+          plainText: formattingInfo.plainText,
         };
       }
       return message;
     });
-    
+
     res.status(200).json(processedMessages);
   } catch (error) {
     console.log("Error in getMessages Controller: ", error.message);
@@ -62,32 +66,34 @@ export const getGroupMessages = async (req, res) => {
     const userId = req.user._id;
 
     // Check if user is a member of the group
-    const Group = (await import('../models/group.model.js')).default;
+    const Group = (await import("../models/group.model.js")).default;
     const group = await Group.findById(groupId);
-    
+
     if (!group) {
       return res.status(404).json({ error: "Group not found." });
     }
 
     if (!group.isMember(userId)) {
-      return res.status(403).json({ error: "Access denied. You are not a member of this group." });
+      return res
+        .status(403)
+        .json({ error: "Access denied. You are not a member of this group." });
     }
 
     const messages = await Message.find({ groupId })
-      .populate('senderId', 'fullName profilePic')
-      .populate('replyTo', 'text senderId')
-      .populate('threadReplies', 'text senderId createdAt')
+      .populate("senderId", "fullName profilePic")
+      .populate("replyTo", "text senderId")
+      .populate("threadReplies", "text senderId createdAt")
       .sort({ createdAt: 1 });
 
     // Process formatting for each message
-    const processedMessages = messages.map(message => {
+    const processedMessages = messages.map((message) => {
       if (message.hasFormatting && message.text && !message.formattingInfo) {
         // Backward compatibility: generate formatting info for existing messages
         const formattingInfo = getFormattingInfo(message.text);
         message.formattingInfo = {
           types: formattingInfo.types,
           formattedHtml: formattingInfo.formattedHtml,
-          plainText: formattingInfo.plainText
+          plainText: formattingInfo.plainText,
         };
       }
       return message;
@@ -102,12 +108,22 @@ export const getGroupMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   try {
-    const { text, imageUrl, voiceUrl, voiceDuration, replyTo, threadId, isThreadReply, hasFormatting, groupId } = req.body;
+    const {
+      text,
+      imageUrl,
+      voiceUrl,
+      voiceDuration,
+      replyTo,
+      threadId,
+      isThreadReply,
+      hasFormatting,
+      groupId,
+    } = req.body;
     const { id: receiverId } = req.params; // This might be undefined for group messages
     const senderId = req.user._id;
 
     // Debug logging
-    console.log('SendMessage Debug:', {
+    console.log("SendMessage Debug:", {
       receiverId,
       receiverIdType: typeof receiverId,
       groupId,
@@ -116,7 +132,7 @@ export const sendMessage = async (req, res) => {
       hasImage: !!imageUrl,
       hasVoice: !!voiceUrl,
       requestBody: req.body,
-      requestParams: req.params
+      requestParams: req.params,
     });
 
     // Check if all content fields are missing.
@@ -127,32 +143,37 @@ export const sendMessage = async (req, res) => {
     }
 
     // Clean up receiverId and groupId
-    const cleanReceiverId = receiverId === 'undefined' || receiverId === undefined ? null : receiverId;
-    const cleanGroupId = groupId === 'undefined' || groupId === undefined || groupId === null ? null : groupId;
-    
-    console.log('Cleaned IDs:', {
+    const cleanReceiverId =
+      receiverId === "undefined" || receiverId === undefined
+        ? null
+        : receiverId;
+    const cleanGroupId =
+      groupId === "undefined" || groupId === undefined || groupId === null
+        ? null
+        : groupId;
+
+    console.log("Cleaned IDs:", {
       originalReceiverId: receiverId,
       cleanReceiverId,
       originalGroupId: groupId,
-      cleanGroupId
+      cleanGroupId,
     });
 
     // Validate that either groupId or receiverId is provided, but not both
     if (cleanGroupId && cleanReceiverId) {
-      return res
-        .status(400)
-        .json({ error: "Cannot send message to both group and individual user." });
+      return res.status(400).json({
+        error: "Cannot send message to both group and individual user.",
+      });
     }
 
     if (!cleanGroupId && !cleanReceiverId) {
       // Provide specific guidance based on the original values
-      if (receiverId === 'undefined' && !groupId) {
-        return res
-          .status(400)
-          .json({ 
-            error: "For group messages, use /api/messages/send-group endpoint and include groupId in the request body.",
-            hint: "It looks like you're trying to send a group message but using the direct message endpoint."
-          });
+      if (receiverId === "undefined" && !groupId) {
+        return res.status(400).json({
+          error:
+            "For group messages, use /api/messages/send-group endpoint and include groupId in the request body.",
+          hint: "It looks like you're trying to send a group message but using the direct message endpoint.",
+        });
       }
       return res
         .status(400)
@@ -161,22 +182,24 @@ export const sendMessage = async (req, res) => {
 
     // If groupId is provided, validate group membership
     if (cleanGroupId) {
-      const Group = (await import('../models/group.model.js')).default;
+      const Group = (await import("../models/group.model.js")).default;
       const group = await Group.findById(cleanGroupId);
-      
+
       if (!group) {
         return res.status(404).json({ error: "Group not found." });
       }
 
       if (!group.isMember(senderId)) {
-        return res.status(403).json({ error: "You are not a member of this group." });
+        return res
+          .status(403)
+          .json({ error: "You are not a member of this group." });
       }
     }
 
     // Handle threading logic
     let threadDepth = 0;
     let finalThreadId = threadId;
-    
+
     if (replyTo) {
       const parentMessage = await Message.findById(replyTo);
       if (parentMessage) {
@@ -190,22 +213,22 @@ export const sendMessage = async (req, res) => {
     let processedText = text;
     let formattingInfo = null;
     let autoDetectedFormatting = false;
-    
+
     if (text) {
       // Get formatting information
       formattingInfo = getFormattingInfo(text);
-      
+
       // Auto-detect formatting if not explicitly set
       if (!hasFormatting && formattingInfo.hasFormatting) {
         autoDetectedFormatting = true;
       }
-      
-      console.log('📝 Text formatting analysis:', {
-        originalText: text.substring(0, 100) + '...',
+
+      console.log("📝 Text formatting analysis:", {
+        originalText: text.substring(0, 100) + "...",
         hasFormattingMarkers: formattingInfo.hasFormatting,
         formattingTypes: formattingInfo.types,
         explicitFormatting: hasFormatting,
-        autoDetected: autoDetectedFormatting
+        autoDetected: autoDetectedFormatting,
       });
     }
 
@@ -249,97 +272,118 @@ export const sendMessage = async (req, res) => {
     // Formatting field - set if explicitly provided or auto-detected
     if (hasFormatting || autoDetectedFormatting) {
       messageData.hasFormatting = true;
-      
+
       // Add formatting metadata
       if (formattingInfo) {
         messageData.formattingInfo = {
           types: formattingInfo.types,
           formattedHtml: formattingInfo.formattedHtml,
-          plainText: formattingInfo.plainText
+          plainText: formattingInfo.plainText,
         };
       }
     }
 
-    console.log('📝 Final message data:', messageData);
+    console.log("📝 Final message data:", messageData);
 
     // Create a new message instance.
     const newMessage = new Message(messageData);
 
-    console.log('💾 Saving message to database...');
+    console.log("💾 Saving message to database...");
     // Save the new message to the database.
     await newMessage.save();
-    console.log('✅ Message saved successfully:', newMessage._id.toString());
-    
+    console.log("✅ Message saved successfully:", newMessage._id.toString());
+
     // Populate sender info
-    await newMessage.populate('senderId', 'fullName profilePic');
-    
+    await newMessage.populate("senderId", "fullName profilePic");
+
+    // Create a sanitized message object for socket emission
+    const messageForSocket = {
+      ...newMessage.toObject(), // Convert mongoose document to plain object
+      senderId: newMessage.senderId._id.toString(), // Ensure senderId is a string
+      // receiverId might be a string or undefined for group messages, handle it.
+      receiverId: newMessage.receiverId
+        ? newMessage.receiverId.toString()
+        : undefined,
+    };
+
     // Update thread replies array for the root thread message
     if (finalThreadId && (isThreadReply || replyTo)) {
-      console.log('🧵 Updating thread replies:', {
+      console.log("🧵 Updating thread replies:", {
         finalThreadId: finalThreadId.toString(),
         newMessageId: newMessage._id.toString(),
         isThreadReply,
-        replyTo: replyTo?.toString()
+        replyTo: replyTo?.toString(),
       });
-      
-      const updateResult = await Message.findByIdAndUpdate(finalThreadId, {
-        $addToSet: { threadReplies: newMessage._id }
-      }, { new: true });
-      
+
+      const updateResult = await Message.findByIdAndUpdate(
+        finalThreadId,
+        {
+          $addToSet: { threadReplies: newMessage._id },
+        },
+        { new: true }
+      );
+
       if (updateResult) {
-        console.log('✅ Thread updated successfully. Reply count:', updateResult.threadReplies.length);
+        console.log(
+          "✅ Thread updated successfully. Reply count:",
+          updateResult.threadReplies.length
+        );
       } else {
-        console.log('❌ Failed to update thread - thread message not found');
+        console.log("❌ Failed to update thread - thread message not found");
       }
     } else {
-      console.log('🧵 No thread update needed:', {
+      console.log("🧵 No thread update needed:", {
         finalThreadId: finalThreadId?.toString(),
         isThreadReply,
-        replyTo: replyTo?.toString()
+        replyTo: replyTo?.toString(),
       });
     }
 
     // Handle real-time updates
     if (cleanGroupId) {
       // Emit to group room
-      io.to(`group_${cleanGroupId}`).emit("newGroupMessage", newMessage);
-      
+      io.to(`group_${cleanGroupId}`).emit("newGroupMessage", messageForSocket);
+
       // If this is a thread reply, also emit thread update
       if (finalThreadId && (isThreadReply || replyTo)) {
         io.to(`group_${cleanGroupId}`).emit("threadReplyAdded", {
           threadId: finalThreadId,
-          newReply: newMessage
+          newReply: messageForSocket,
         });
       }
-      
+
       // Update group's last message and activity
-      const Group = (await import('../models/group.model.js')).default;
+      const Group = (await import("../models/group.model.js")).default;
       await Group.findByIdAndUpdate(cleanGroupId, {
         lastMessage: newMessage._id,
         lastActivity: new Date(),
-        $inc: { messageCount: 1 }
+        $inc: { messageCount: 1 },
       });
     } else {
       // Direct message
       const receiverSocketId = getReceiverSocketId(cleanReceiverId);
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit("newMessage", newMessage);
-        
+        console.log(
+          `📡 Emitting newMessage to receiver ${cleanReceiverId} (${receiverSocketId})`
+        );
+        io.to(receiverSocketId).emit("newMessage", messageForSocket);
+        console.log(`✅ newMessage emitted to ${cleanReceiverId}`);
+
         // If this is a thread reply, also emit thread update
         if (finalThreadId && (isThreadReply || replyTo)) {
           io.to(receiverSocketId).emit("threadReplyAdded", {
             threadId: finalThreadId,
-            newReply: newMessage
+            newReply: messageForSocket,
           });
         }
       }
-      
+
       // Also emit to sender for thread updates
       const senderSocketId = getReceiverSocketId(senderId.toString());
       if (senderSocketId && finalThreadId && (isThreadReply || replyTo)) {
         io.to(senderSocketId).emit("threadReplyAdded", {
           threadId: finalThreadId,
-          newReply: newMessage
+          newReply: messageForSocket,
         });
       }
     }
@@ -488,17 +532,18 @@ export const getThreadReplies = async (req, res) => {
 
     // Find the parent message
     const parentMessage = await Message.findById(messageId)
-      .populate('senderId', 'fullName profilePic')
-      .populate('receiverId', 'fullName profilePic');
+      .populate("senderId", "fullName profilePic")
+      .populate("receiverId", "fullName profilePic");
 
     if (!parentMessage) {
       return res.status(404).json({ error: "Message not found." });
     }
 
     // Check if user has access to this conversation
-    const hasAccess = parentMessage.senderId._id.toString() === userId.toString() ||
-                     parentMessage.receiverId._id.toString() === userId.toString();
-    
+    const hasAccess =
+      parentMessage.senderId._id.toString() === userId.toString() ||
+      parentMessage.receiverId._id.toString() === userId.toString();
+
     if (!hasAccess) {
       return res.status(403).json({ error: "Access denied." });
     }
@@ -506,15 +551,15 @@ export const getThreadReplies = async (req, res) => {
     // Get thread replies
     const threadReplies = await Message.find({
       threadId: parentMessage.threadId || parentMessage._id,
-      isThreadReply: true
+      isThreadReply: true,
     })
-    .populate('senderId', 'fullName profilePic')
-    .populate('replyTo', 'text senderId')
-    .sort({ createdAt: 1 });
+      .populate("senderId", "fullName profilePic")
+      .populate("replyTo", "text senderId")
+      .sort({ createdAt: 1 });
 
     res.status(200).json({
       parentMessage,
-      replies: threadReplies
+      replies: threadReplies,
     });
   } catch (error) {
     console.error("Error in getThreadReplies Controller: ", error.message);
@@ -537,39 +582,36 @@ export const searchMessages = async (req, res) => {
       hasAttachment,
       hasFormatting,
       inThread,
-      sortBy = 'date',
-      sortOrder = 'desc'
+      sortBy = "date",
+      sortOrder = "desc",
     } = req.body;
-    
+
     const userId = req.user._id;
     const skip = (page - 1) * limit;
 
     // Build search criteria
     let searchCriteria = {
-      $or: [
-        { senderId: userId },
-        { receiverId: userId }
-      ],
-      isDeleted: false
+      $or: [{ senderId: userId }, { receiverId: userId }],
+      isDeleted: false,
     };
 
     // Conversation filter
     if (conversationWith) {
       searchCriteria.$or = [
         { senderId: userId, receiverId: conversationWith },
-        { senderId: conversationWith, receiverId: userId }
+        { senderId: conversationWith, receiverId: userId },
       ];
     }
 
     // Text search
     if (query && query.trim()) {
-      const searchRegex = new RegExp(query.trim(), 'i');
+      const searchRegex = new RegExp(query.trim(), "i");
       searchCriteria.text = searchRegex;
     }
 
     // Sender filter
     if (sender) {
-      if (sender === 'me') {
+      if (sender === "me") {
         searchCriteria.senderId = userId;
       } else {
         searchCriteria.senderId = sender;
@@ -577,22 +619,22 @@ export const searchMessages = async (req, res) => {
     }
 
     // Message type filter
-    if (messageType && messageType !== 'all') {
+    if (messageType && messageType !== "all") {
       switch (messageType) {
-        case 'text':
-          searchCriteria.text = { $exists: true, $ne: '' };
+        case "text":
+          searchCriteria.text = { $exists: true, $ne: "" };
           searchCriteria.image = { $exists: false };
           searchCriteria.voiceUrl = { $exists: false };
           searchCriteria.fileUrl = { $exists: false };
           break;
-        case 'image':
-          searchCriteria.image = { $exists: true, $ne: '' };
+        case "image":
+          searchCriteria.image = { $exists: true, $ne: "" };
           break;
-        case 'voice':
-          searchCriteria.voiceUrl = { $exists: true, $ne: '' };
+        case "voice":
+          searchCriteria.voiceUrl = { $exists: true, $ne: "" };
           break;
-        case 'file':
-          searchCriteria.fileUrl = { $exists: true, $ne: '' };
+        case "file":
+          searchCriteria.fileUrl = { $exists: true, $ne: "" };
           break;
       }
     }
@@ -613,9 +655,9 @@ export const searchMessages = async (req, res) => {
     // Attachment filter
     if (hasAttachment) {
       searchCriteria.$or = [
-        { image: { $exists: true, $ne: '' } },
-        { voiceUrl: { $exists: true, $ne: '' } },
-        { fileUrl: { $exists: true, $ne: '' } }
+        { image: { $exists: true, $ne: "" } },
+        { voiceUrl: { $exists: true, $ne: "" } },
+        { fileUrl: { $exists: true, $ne: "" } },
       ];
     }
 
@@ -631,12 +673,12 @@ export const searchMessages = async (req, res) => {
 
     // Sort options
     let sortOptions = {};
-    if (sortBy === 'date') {
-      sortOptions.createdAt = sortOrder === 'desc' ? -1 : 1;
-    } else if (sortBy === 'relevance') {
+    if (sortBy === "date") {
+      sortOptions.createdAt = sortOrder === "desc" ? -1 : 1;
+    } else if (sortBy === "relevance") {
       // For relevance, we'll use a simple text score
       if (query && query.trim()) {
-        sortOptions = { score: { $meta: 'textScore' } };
+        sortOptions = { score: { $meta: "textScore" } };
       } else {
         sortOptions.createdAt = -1; // Fallback to date
       }
@@ -644,9 +686,9 @@ export const searchMessages = async (req, res) => {
 
     // Execute search
     const messages = await Message.find(searchCriteria)
-      .populate('senderId', 'fullName profilePic')
-      .populate('receiverId', 'fullName profilePic')
-      .populate('replyTo', 'text senderId')
+      .populate("senderId", "fullName profilePic")
+      .populate("receiverId", "fullName profilePic")
+      .populate("replyTo", "text senderId")
       .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit));
@@ -661,7 +703,7 @@ export const searchMessages = async (req, res) => {
       page: parseInt(page),
       limit: parseInt(limit),
       hasMore,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error("Error in searchMessages Controller: ", error.message);
