@@ -1,7 +1,9 @@
 import axios from "axios";
 
 // Force the correct backend URL
-const BACKEND_URL = "http://localhost:9000/api";
+const BACKEND_URL =import.meta.env.MODE === "development"
+    ? "http://localhost:9000/api"
+    : "https://massenger-chat.onrender.com";
 
 console.log("Setting axios baseURL to:", BACKEND_URL);
 
@@ -27,7 +29,7 @@ axiosInstance.interceptors.request.use(
       console.error(
         "ERROR: Request is going to frontend port instead of backend!"
       );
-      console.error("Expected: localhost:9000, Got:", fullUrl);
+      console.error("Expected: https://massenger-chat.onrender.com/, Got:", fullUrl);
     }
 
     return config;
