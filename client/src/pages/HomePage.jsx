@@ -1,9 +1,8 @@
-import React from "react";
+
 import { useChatStore } from "../store/useChatStore";
 import Sidebar from "../components/Sidebar";
 import EnhancedChatContainer from "../components/EnhancedChatContainer";
 import NoChatSelected from "../components/NoChatSelected";
-import FeatureTestPanel from "../components/FeatureTestPanel";
 
 const HomePage = () => {
   const { selectedUser } = useChatStore();
@@ -17,9 +16,7 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-      
-      {/* Feature Test Panel */}
-      <FeatureTestPanel />
+    
     </div>
   );
 };

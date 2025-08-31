@@ -12,7 +12,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (authUser) {
       // Connect to your backend socket server with user ID
-      const newSocket = io("http://localhost:9000", {
+      const newSocket = io("https://massenger-chat.onrender.com/api", {
         withCredentials: true,
         query: {
           userId: authUser._id,

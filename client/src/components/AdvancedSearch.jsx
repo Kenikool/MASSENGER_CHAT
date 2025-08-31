@@ -80,7 +80,7 @@ const AdvancedSearch = ({ isOpen, onClose, selectedUser }) => {
         ...filters
       };
       
-      const response = await axiosInstance.post('/api/messages/search', searchParams);
+      const response = await axiosInstance.post('/messages/search', searchParams);
       
       if (page === 1) {
         setSearchResults(response.data.messages);

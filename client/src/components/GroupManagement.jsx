@@ -43,7 +43,7 @@ export const CreateGroupModal = ({ isOpen, onClose, onGroupCreated }) => {
 
     setIsCreating(true);
     try {
-      const response = await axiosInstance.post('/api/groups/create', {
+      const response = await axiosInstance.post('/groups/create', {
         name: groupName.trim(),
         description: description.trim(),
         members: selectedMembers,

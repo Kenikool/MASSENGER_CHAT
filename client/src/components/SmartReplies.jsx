@@ -18,7 +18,7 @@ const SmartReplies = ({ lastMessage, conversationHistory, onSelectReply }) => {
 
     setLoading(true);
     try {
-      const response = await axiosInstance.post('/ai/smart-replies', {
+      const response = await axiosInstance.post('/smart-replies', {
         message: lastMessage.text,
         context: conversationHistory.slice(-5).map(m => m.text).filter(Boolean),
       });

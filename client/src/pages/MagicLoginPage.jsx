@@ -26,7 +26,7 @@ const MagicLoginPage = () => {
 
         // Make API call to backend magic login endpoint
         const response = await fetch(
-          `http://localhost:9000/api/auth/magic-login/${token}`,
+          `https://massenger-chat.onrender.com/api/auth/magic-login/${token}`,
           {
             method: "GET",
             credentials: "include", // Include cookies

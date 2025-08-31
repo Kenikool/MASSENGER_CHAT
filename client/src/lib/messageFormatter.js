@@ -1,12 +1,3 @@
-// Message Formatting Utility
-// Supports markdown-like formatting for rich text messages
-
-/**
- * Parse and format message text with markdown-like syntax
- * @param {string} text - Raw message text
- * @param {Array} users - Array of users for @mention parsing
- * @returns {string} - Formatted HTML string
- */
 export const formatMessage = (text, users = []) => {
   if (!text) return '';
   
@@ -85,12 +76,6 @@ export const formatMessage = (text, users = []) => {
   return formattedText;
 };
 
-/**
- * Extract mentions from message text
- * @param {string} text - Message text
- * @param {Array} users - Array of users
- * @returns {Array} - Array of mentioned user IDs
- */
 export const extractMentions = (text, users = []) => {
   if (!text || !users.length) return [];
   
@@ -105,11 +90,6 @@ export const extractMentions = (text, users = []) => {
   return mentions;
 };
 
-/**
- * Extract hashtags from message text
- * @param {string} text - Message text
- * @returns {Array} - Array of hashtags
- */
 export const extractHashtags = (text) => {
   if (!text) return [];
   
@@ -124,11 +104,6 @@ export const extractHashtags = (text) => {
   return hashtags;
 };
 
-/**
- * Check if text contains formatting
- * @param {string} text - Message text
- * @returns {boolean} - True if text contains formatting
- */
 export const hasFormatting = (text) => {
   if (!text) return false;
   
@@ -147,10 +122,6 @@ export const hasFormatting = (text) => {
   return formattingPatterns.some(pattern => pattern.test(text));
 };
 
-/**
- * Get formatting help text
- * @returns {Array} - Array of formatting examples
- */
 export const getFormattingHelp = () => {
   return [
     { syntax: '**bold**', description: 'Bold text', example: '**Hello World**' },
@@ -163,12 +134,6 @@ export const getFormattingHelp = () => {
   ];
 };
 
-/**
- * Preview formatted message
- * @param {string} text - Raw message text
- * @param {Array} users - Array of users for mentions
- * @returns {Object} - Object with formatted text and metadata
- */
 export const previewMessage = (text, users = []) => {
   const formatted = formatMessage(text, users);
   const mentions = extractMentions(text, users);
