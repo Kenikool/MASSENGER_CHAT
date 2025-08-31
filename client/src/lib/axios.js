@@ -3,7 +3,7 @@ import axios from "axios";
 // Force the correct backend URL
 const BACKEND_URL =import.meta.env.MODE === "development"
     ? "http://localhost:9000/api"
-    : "https://massenger-chat.onrender.com";
+    : "https://massenger-chat.onrender.com/api";
 
 console.log("Setting axios baseURL to:", BACKEND_URL);
 

@@ -7,8 +7,8 @@ import { io } from "socket.io-client";
 
 const BASE_URL =
 import.meta.env.MODE === "development"
-    ? "http://localhost:9000"
-    : "https://massenger-chat.onrender.com";
+    ? "http://localhost:9000/api"
+    : "https://massenger-chat.onrender.com/api";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
