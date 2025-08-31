@@ -93,7 +93,7 @@ export const sendVerificationEmail = async (
     console.log(`Attempting to send verification email to: ${userEmail}`);
     console.log(`Verification token: ${verificationToken}`);
     
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL || "https://massenger-chat.onrender.com;
     const animationGifUrl = "https://example.com/your-animated-gif.gif";
     const verificationLink = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
@@ -121,7 +121,7 @@ export const sendChangeEmailVerification = async (
   token
 ) => {
   try {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL || "https://massenger-chat.onrender.com";
     const verificationLink = `${frontendUrl}/verify-email-change?token=${token}`;
     // You can create a separate HTML template for this email or reuse the existing one with a modified message.
     const mailOptions = {
@@ -166,7 +166,7 @@ export const sendMagicLinkEmail = async (
     console.log(`Attempting to send magic link email to: ${userEmail}`);
     console.log(`Magic link token: ${magicLinkToken}`);
     
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL || "https://massenger-chat.onrender.com";
     const magicLink = `${frontendUrl}/magic-login/${magicLinkToken}`;
     
     console.log(`Magic link: ${magicLink}`);
