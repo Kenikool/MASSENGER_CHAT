@@ -93,7 +93,7 @@ export const sendVerificationEmail = async (
     console.log(`Attempting to send verification email to: ${userEmail}`);
     console.log(`Verification token: ${verificationToken}`);
     
-    const frontendUrl = process.env.FRONTEND_URL || "https://massenger-chat.onrender.com;
+    const frontendUrl = process.env.FRONTEND_URL || "https://massenger-chat.onrender.com";
     const animationGifUrl = "https://example.com/your-animated-gif.gif";
     const verificationLink = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
